@@ -1,7 +1,12 @@
 
-import { Supplier, Product, Client, ServiceOrder, ServiceOrderStatus } from '../types';
+import { Supplier, Product, Client, ServiceOrder, ServiceOrderStatus, User } from '../types';
 
 // Mock Data
+let users: User[] = [
+    { id: 1, name: 'Admin', email: 'admin@email.com', role: 'admin', createdAt: new Date().toISOString() },
+    { id: 2, name: 'Tecnico Um', email: 'tecnico1@email.com', role: 'tecnico', createdAt: new Date().toISOString() },
+];
+
 let suppliers: Supplier[] = [
   { id: 1, name: "Fornecedor ABC", taxId: "12.345.678/0001-90", phone:"11999990000", email:"contato@fornecedorabc.com", address:"Av. Exemplo, 100", status: 'ativo', createdAt: new Date().toISOString() },
   { id: 2, name: "Fornecedor XYZ", taxId: "98.765.432/0001-11", phone:"11988880000", email:"vendas@fornecedorxyz.com", address:"Rua Outra, 200", status: 'ativo', createdAt: new Date().toISOString() }
@@ -19,11 +24,30 @@ let clients: Client[] = [
 ];
 
 let serviceOrders: ServiceOrder[] = [
-    { id: 1, osNumber: 'OS-2024-001', clientId: 1, clientName: 'John Doe', status: ServiceOrderStatus.InProgress, entryDate: new Date().toISOString(), createdAt: new Date().toISOString(), products: [{id: 1, productId: 1, productName: 'SSD 512GB', productReference: 'SSD-512-INT', qty: 1, unitCost: 50}] },
-    { id: 2, osNumber: 'OS-2024-002', clientId: 2, clientName: 'Jane Smith', status: ServiceOrderStatus.Pending, entryDate: new Date().toISOString(), createdAt: new Date().toISOString(), products: [] }
+    { id: 1, osNumber: 'OS-2024-001', clientId: 1, clientName: 'John Doe', status: ServiceOrderStatus.EmAndamento, entryDate: new Date(Date.now() - 86400000 * 2).toISOString(), createdAt: new Date().toISOString(), products: [{id: 1, productId: 1, productName: 'SSD 512GB', productReference: 'SSD-512-INT', qty: 1, unitCost: 50}], technicianId: 2, technicianName: 'Tecnico Um' },
+    { id: 2, osNumber: 'OS-2024-002', clientId: 2, clientName: 'Jane Smith', status: ServiceOrderStatus.EmAberto, entryDate: new Date(Date.now() - 86400000 * 3).toISOString(), createdAt: new Date().toISOString(), products: [] },
+    { id: 3, osNumber: 'OS-2024-003', clientId: 1, clientName: 'John Doe', status: ServiceOrderStatus.EmAberto, entryDate: new Date(Date.now() - 86400000 * 1).toISOString(), createdAt: new Date().toISOString(), products: [] },
 ];
 
-const mockApi = <T,>(data: T): Promise<T> => new Promise(resolve => setTimeout(() => resolve(data), 500));
+const mockApi = <T,>(data: T): Promise<T> => new Promise(resolve => setTimeout(() => resolve(data), 300));
+
+// --- Auth & Users API ---
+export const login = (email: string, pass: string): Promise<User> => {
+    // In a real app, 'pass' would be hashed and compared.
+    const user = users.find(u => u.email === email);
+    if (user) {
+        return mockApi(user);
+    }
+    return new Promise((_, reject) => setTimeout(() => reject(new Error('Credenciais inválidas')), 300));
+};
+
+export const getUsers = () => mockApi(users);
+export const createUser = (data: Omit<User, 'id' | 'createdAt'>) => {
+    const newUser: User = { ...data, id: Date.now(), createdAt: new Date().toISOString() };
+    users.push(newUser);
+    return mockApi(newUser);
+};
+
 
 // --- Suppliers API ---
 export const getSuppliers = () => mockApi(suppliers);
@@ -69,7 +93,8 @@ export const createClient = (data: Omit<Client, 'id' | 'createdAt'>) => {
 
 // --- Service Orders API ---
 export const getServiceOrders = () => mockApi(serviceOrders);
-export const createServiceOrder = (data: Omit<ServiceOrder, 'id' | 'createdAt' | 'osNumber' | 'clientName' | 'products'>) => {
+
+export const createServiceOrder = (data: Omit<ServiceOrder, 'id' | 'createdAt' | 'osNumber' | 'clientName' | 'products' | 'status'>) => {
     const client = clients.find(c => c.id === data.clientId);
     const newSO: ServiceOrder = { 
         ...data, 
@@ -77,16 +102,38 @@ export const createServiceOrder = (data: Omit<ServiceOrder, 'id' | 'createdAt' |
         osNumber: `OS-${new Date().getFullYear()}-${String(serviceOrders.length + 1).padStart(3, '0')}`,
         clientName: client?.name || 'Unknown',
         products: [],
+        status: ServiceOrderStatus.EmAberto, // New OS always start as 'Em Aberto'
         createdAt: new Date().toISOString() 
     };
     serviceOrders.push(newSO);
     return mockApi(newSO);
 };
+
+export const assignServiceOrder = (orderId: number, technicianId: number) => {
+    const order = serviceOrders.find(so => so.id === orderId);
+    const technician = users.find(u => u.id === technicianId);
+    if(order && technician) {
+        order.technicianId = technician.id;
+        order.technicianName = technician.name;
+        order.status = ServiceOrderStatus.EmAndamento;
+        return mockApi(order);
+    }
+    return Promise.reject("Order or Technician not found");
+};
+
+export const updateServiceOrderStatus = (orderId: number, status: ServiceOrderStatus) => {
+    const order = serviceOrders.find(so => so.id === orderId);
+    if (order) {
+        order.status = status;
+        return mockApi(order);
+    }
+    return Promise.reject("Order not found");
+};
+
 export const addProductToServiceOrder = (orderId: number, productId: number, qty: number) => {
     const order = serviceOrders.find(so => so.id === orderId);
     const product = products.find(p => p.id === productId);
     if(order && product) {
-        // In a real app, this would reserve stock, not reduce it
         product.qty -= qty;
         order.products.push({
             id: Date.now(),
@@ -99,25 +146,22 @@ export const addProductToServiceOrder = (orderId: number, productId: number, qty
         return mockApi(order);
     }
     return Promise.reject("Order or Product not found");
-}
+};
 
 // --- Reports API ---
 export const getDashboardData = () => {
     const stockAlerts = products.filter(p => p.minQty && p.qty < p.minQty).length;
-    const pendingOrders = serviceOrders.filter(so => so.status === ServiceOrderStatus.Pending).length;
     
-    const supplierStockValue = suppliers.map(supplier => {
-        const totalValue = products
-            .filter(p => p.supplierId === supplier.id && p.cost)
-            .reduce((acc, p) => acc + (p.cost! * p.qty), 0);
-        return { name: supplier.name, value: totalValue };
-    }).sort((a,b) => b.value - a.value);
+    const newOrders = serviceOrders.filter(so => so.status === ServiceOrderStatus.EmAberto);
+    const activeOrders = serviceOrders.filter(so => so.status === ServiceOrderStatus.EmAndamento);
+    const pendingOrders = newOrders.length;
 
     return mockApi({
         totalProducts: products.length,
         totalSuppliers: suppliers.length,
         stockAlerts,
         pendingOrders,
-        supplierStockValue
+        newOrders,
+        activeOrders
     });
-}
+};

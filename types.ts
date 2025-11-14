@@ -1,4 +1,12 @@
 
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: 'tecnico' | 'admin';
+  createdAt: string;
+}
+
 export interface Supplier {
   id: number;
   name: string;
@@ -46,10 +54,11 @@ export interface Client {
 }
 
 export enum ServiceOrderStatus {
-  Pending = 'Pending',
-  InProgress = 'In Progress',
-  Completed = 'Completed',
-  Canceled = 'Canceled',
+  EmAberto = 'Em Aberto',
+  EmAndamento = 'Em Andamento',
+  Pendente = 'Pendente',
+  Resolvido = 'Resolvido',
+  Fechado = 'Fechado',
 }
 
 export interface ServiceOrder {
@@ -65,7 +74,8 @@ export interface ServiceOrder {
   diagnosisInitial?: string;
   totalEstimated?: number;
   totalFinal?: number;
-  responsibleUserId?: number;
+  technicianId?: number;
+  technicianName?: string;
   createdAt: string;
   products: ServiceOrderProduct[];
 }

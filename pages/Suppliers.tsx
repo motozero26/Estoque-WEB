@@ -33,23 +33,23 @@ const SupplierForm: React.FC<{
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
             <div className="bg-white dark:bg-gray-800 rounded-lg p-8 w-full max-w-2xl shadow-xl">
-                <h2 className="text-2xl font-bold mb-6">{supplier ? 'Edit' : 'Add'} Supplier</h2>
+                <h2 className="text-2xl font-bold mb-6">{supplier ? 'Editar' : 'Adicionar'} Fornecedor</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input name="name" value={formData.name} onChange={handleChange} placeholder="Name" className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" required />
+                        <input name="name" value={formData.name} onChange={handleChange} placeholder="Nome" className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" required />
                         <input name="taxId" value={formData.taxId} onChange={handleChange} placeholder="CNPJ/CPF" className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
-                        <input name="phone" value={formData.phone} onChange={handleChange} placeholder="Phone" className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
-                        <input name="email" value={formData.email} onChange={handleChange} placeholder="Email" type="email" className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
+                        <input name="phone" value={formData.phone} onChange={handleChange} placeholder="Telefone" className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
+                        <input name="email" value={formData.email} onChange={handleChange} placeholder="E-mail" type="email" className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
                     </div>
-                    <input name="address" value={formData.address} onChange={handleChange} placeholder="Address" className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
-                    <textarea name="notes" value={formData.notes} onChange={handleChange} placeholder="Notes" className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
+                    <input name="address" value={formData.address} onChange={handleChange} placeholder="Endereço" className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
+                    <textarea name="notes" value={formData.notes} onChange={handleChange} placeholder="Observações" className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
                     <select name="status" value={formData.status} onChange={handleChange} className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600">
-                        <option value="ativo">Active</option>
-                        <option value="inativo">Inactive</option>
+                        <option value="ativo">Ativo</option>
+                        <option value="inativo">Inativo</option>
                     </select>
                     <div className="flex justify-end gap-4 mt-6">
-                        <button type="button" onClick={onCancel} className="px-4 py-2 bg-gray-300 dark:bg-gray-600 rounded-lg">Cancel</button>
-                        <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg">Save</button>
+                        <button type="button" onClick={onCancel} className="px-4 py-2 bg-gray-300 dark:bg-gray-600 rounded-lg">Cancelar</button>
+                        <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg">Salvar</button>
                     </div>
                 </form>
             </div>
@@ -86,7 +86,7 @@ const Suppliers: React.FC = () => {
     };
 
     const handleDelete = async (id: number) => {
-        if (window.confirm('Are you sure you want to delete this supplier?')) {
+        if (window.confirm('Você tem certeza que deseja excluir este fornecedor?')) {
             await api.deleteSupplier(id);
             fetchSuppliers();
         }
@@ -95,22 +95,22 @@ const Suppliers: React.FC = () => {
     return (
         <div>
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold">Suppliers</h1>
+                <h1 className="text-3xl font-bold">Fornecedores</h1>
                 <button onClick={() => { setEditingSupplier(null); setIsModalOpen(true); }} className="bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center gap-2">
-                    <Plus size={20}/> Add Supplier
+                    <Plus size={20}/> Adicionar Fornecedor
                 </button>
             </div>
             {loading ? (
-                <p>Loading...</p>
+                <p>Carregando...</p>
             ) : (
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
                     <table className="w-full text-left">
                         <thead className="bg-gray-50 dark:bg-gray-700">
                             <tr>
-                                <th className="p-4">Name</th>
-                                <th className="p-4">Contact</th>
+                                <th className="p-4">Nome</th>
+                                <th className="p-4">Contato</th>
                                 <th className="p-4">Status</th>
-                                <th className="p-4">Actions</th>
+                                <th className="p-4">Ações</th>
                             </tr>
                         </thead>
                         <tbody>

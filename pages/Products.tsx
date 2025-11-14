@@ -69,30 +69,30 @@ const ProductForm: React.FC<{
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
             <div className="bg-white dark:bg-gray-800 rounded-lg p-8 w-full max-w-3xl shadow-xl max-h-[90vh] overflow-y-auto">
-                <h2 className="text-2xl font-bold mb-6">{product ? 'Edit' : 'Add'} Product</h2>
+                <h2 className="text-2xl font-bold mb-6">{product ? 'Editar' : 'Adicionar'} Produto</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input name="name" value={formData.name} onChange={handleChange} placeholder="Name" className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" required />
-                        <input name="reference" value={formData.reference} onChange={handleChange} placeholder="Reference" className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" required />
+                        <input name="name" value={formData.name} onChange={handleChange} placeholder="Nome" className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" required />
+                        <input name="reference" value={formData.reference} onChange={handleChange} placeholder="Referência" className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" required />
                         <select name="supplierId" value={formData.supplierId} onChange={handleSupplierChange} className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600">
-                            <option value="">No Supplier</option>
+                            <option value="">Sem Fornecedor</option>
                             {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
                         <select name="status" value={formData.status} onChange={handleChange} className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600">
-                            <option value="novo">New</option>
-                            <option value="usado">Used</option>
+                            <option value="novo">Novo</option>
+                            <option value="usado">Usado</option>
                         </select>
-                        <input name="qty" type="number" value={formData.qty} onChange={handleChange} placeholder="Quantity" className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
-                        <input name="cost" type="number" step="0.01" value={formData.cost} onChange={handleChange} placeholder="Cost" className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
-                         <input name="location" value={formData.location} onChange={handleChange} placeholder="Location" className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
+                        <input name="qty" type="number" value={formData.qty} onChange={handleChange} placeholder="Quantidade" className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
+                        <input name="cost" type="number" step="0.01" value={formData.cost} onChange={handleChange} placeholder="Custo" className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
+                         <input name="location" value={formData.location} onChange={handleChange} placeholder="Localização" className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
                          <input name="dateEntry" type="date" value={formData.dateEntry} onChange={handleChange} className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
                     </div>
-                    <textarea name="description" value={formData.description} onChange={handleChange} placeholder="Description" className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
+                    <textarea name="description" value={formData.description} onChange={handleChange} placeholder="Descrição" className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
                     <div>
-                        <label className="block mb-2 text-sm font-medium">Photos</label>
+                        <label className="block mb-2 text-sm font-medium">Fotos</label>
                         <div className="border-2 border-dashed rounded-lg p-6 text-center">
                             <UploadCloud className="mx-auto h-12 w-12 text-gray-400" />
-                            <p className="mt-2 text-sm text-gray-600">Drag & drop photos here, or click to select</p>
+                            <p className="mt-2 text-sm text-gray-600">Arraste e solte as fotos aqui, ou clique para selecionar</p>
                             <input type="file" multiple onChange={handlePhotoChange} className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"/>
                         </div>
                         <div className="mt-4 flex gap-4 flex-wrap">
@@ -102,8 +102,8 @@ const ProductForm: React.FC<{
                         </div>
                     </div>
                     <div className="flex justify-end gap-4 mt-6">
-                        <button type="button" onClick={onCancel} className="px-4 py-2 bg-gray-300 dark:bg-gray-600 rounded-lg">Cancel</button>
-                        <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg">Save</button>
+                        <button type="button" onClick={onCancel} className="px-4 py-2 bg-gray-300 dark:bg-gray-600 rounded-lg">Cancelar</button>
+                        <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg">Salvar</button>
                     </div>
                 </form>
             </div>
@@ -143,7 +143,7 @@ const Products: React.FC = () => {
     };
 
     const handleDelete = async (id: number) => {
-        if (window.confirm('Are you sure you want to delete this product?')) {
+        if (window.confirm('Você tem certeza que deseja excluir este produto?')) {
             await api.deleteProduct(id);
             fetchData();
         }
@@ -152,25 +152,25 @@ const Products: React.FC = () => {
     return (
         <div>
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold">Products</h1>
+                <h1 className="text-3xl font-bold">Produtos</h1>
                 <button onClick={() => { setEditingProduct(null); setIsModalOpen(true); }} className="bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center gap-2">
-                    <Plus size={20}/> Add Product
+                    <Plus size={20}/> Adicionar Produto
                 </button>
             </div>
             {loading ? (
-                <p>Loading...</p>
+                <p>Carregando...</p>
             ) : (
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-x-auto">
                     <table className="w-full text-left">
                         <thead className="bg-gray-50 dark:bg-gray-700">
                             <tr>
-                                <th className="p-4">Photo</th>
-                                <th className="p-4">Name</th>
-                                <th className="p-4">Reference</th>
-                                <th className="p-4">Supplier</th>
-                                <th className="p-4">Qty</th>
+                                <th className="p-4">Foto</th>
+                                <th className="p-4">Nome</th>
+                                <th className="p-4">Referência</th>
+                                <th className="p-4">Fornecedor</th>
+                                <th className="p-4">Qtd</th>
                                 <th className="p-4">Status</th>
-                                <th className="p-4">Actions</th>
+                                <th className="p-4">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
