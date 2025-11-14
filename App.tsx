@@ -89,9 +89,9 @@ function App() {
 
   const navigate = useNavigate();
 
-  const handleLogin = async (email: string, pass: string) => {
+  const handleLogin = async (username: string, pass: string) => {
       try {
-          const user = await api.login(email, pass);
+          const user = await api.login(username, pass);
           setCurrentUser(user);
           localStorage.setItem('currentUser', JSON.stringify(user));
           navigate('/');

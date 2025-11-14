@@ -3,11 +3,11 @@ import React, { useState } from 'react';
 import { Wrench } from 'lucide-react';
 
 interface LoginProps {
-    onLogin: (email: string, pass: string) => Promise<boolean>;
+    onLogin: (username: string, pass: string) => Promise<boolean>;
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
-    const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -16,9 +16,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         e.preventDefault();
         setError('');
         setLoading(true);
-        const success = await onLogin(email, password);
+        const success = await onLogin(username, password);
         if (!success) {
-            setError('E-mail ou senha inválidos.');
+            setError('Usuário ou senha inválidos.');
         }
         setLoading(false);
     };
@@ -35,17 +35,17 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 </div>
                 <form className="space-y-6" onSubmit={handleSubmit}>
                     <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            E-mail
+                        <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Usuário
                         </label>
                         <input
-                            id="email"
-                            name="email"
-                            type="email"
-                            autoComplete="email"
+                            id="username"
+                            name="username"
+                            type="text"
+                            autoComplete="username"
                             required
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
                             className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         />
                     </div>

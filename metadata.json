@@ -1,5 +1,5 @@
 {
-  "name": "Service Desk Manager",
+  "name": "Gestor de estoque ",
   "description": "A web application for managing inventory and service orders for a computer and notebook repair shop. It allows for supplier and client registration, product stock entry with photos, creation and management of service orders, and monitoring of warranty periods.",
   "requestFramePermissions": []
 }

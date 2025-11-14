@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { User } from '../types';
 import * as api from '../services/api';
-import { Plus, UserCog } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 const TechnicianForm: React.FC<{
     onSave: (user: Omit<User, 'id' | 'createdAt'>) => void;
@@ -10,7 +10,7 @@ const TechnicianForm: React.FC<{
 }> = ({ onSave, onCancel }) => {
     const [formData, setFormData] = useState({
         name: '',
-        email: '',
+        username: '',
         role: 'tecnico' as 'tecnico' | 'admin',
     });
 
@@ -29,7 +29,7 @@ const TechnicianForm: React.FC<{
                 <h2 className="text-2xl font-bold mb-6">Adicionar Técnico</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <input name="name" value={formData.name} onChange={handleChange} placeholder="Nome" className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" required />
-                    <input name="email" value={formData.email} onChange={handleChange} placeholder="E-mail" type="email" className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" required/>
+                    <input name="username" value={formData.username} onChange={handleChange} placeholder="Usuário" type="text" className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" required/>
                     <select name="role" value={formData.role} onChange={handleChange} className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600">
                         <option value="tecnico">Técnico</option>
                         <option value="admin">Admin</option>
@@ -83,7 +83,7 @@ const Technicians: React.FC = () => {
                         <thead className="bg-gray-50 dark:bg-gray-700">
                             <tr>
                                 <th className="p-4">Nome</th>
-                                <th className="p-4">E-mail</th>
+                                <th className="p-4">Usuário</th>
                                 <th className="p-4">Função</th>
                             </tr>
                         </thead>
@@ -91,7 +91,7 @@ const Technicians: React.FC = () => {
                             {users.map(u => (
                                 <tr key={u.id} className="border-b dark:border-gray-700">
                                     <td className="p-4 font-medium">{u.name}</td>
-                                    <td className="p-4">{u.email}</td>
+                                    <td className="p-4">{u.username}</td>
                                     <td className="p-4">
                                          <span className={`px-2 py-1 text-xs font-semibold rounded-full ${u.role === 'admin' ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-200 text-gray-800'}`}>
                                             {u.role}

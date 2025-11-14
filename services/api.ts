@@ -1,10 +1,15 @@
 
 import { Supplier, Product, Client, ServiceOrder, ServiceOrderStatus, User } from '../types';
 
+// Internal type to include password for mock auth
+type UserWithPassword = User & { password?: string };
+
+
 // Mock Data
-let users: User[] = [
-    { id: 1, name: 'Admin', email: 'admin@email.com', role: 'admin', createdAt: new Date().toISOString() },
-    { id: 2, name: 'Tecnico Um', email: 'tecnico1@email.com', role: 'tecnico', createdAt: new Date().toISOString() },
+let users: UserWithPassword[] = [
+    { id: 1, name: 'Admin', username: 'admin', role: 'admin', createdAt: new Date().toISOString(), password: 'admin' },
+    { id: 2, name: 'Tecnico Um', username: 'tecnico1', role: 'tecnico', createdAt: new Date().toISOString(), password: '123' },
+    { id: 3, name: 'motozero26', username: 'motozero26', role: 'admin', createdAt: new Date().toISOString(), password: '324512100' },
 ];
 
 let suppliers: Supplier[] = [
@@ -32,16 +37,22 @@ let serviceOrders: ServiceOrder[] = [
 const mockApi = <T,>(data: T): Promise<T> => new Promise(resolve => setTimeout(() => resolve(data), 300));
 
 // --- Auth & Users API ---
-export const login = (email: string, pass: string): Promise<User> => {
-    // In a real app, 'pass' would be hashed and compared.
-    const user = users.find(u => u.email === email);
+export const login = (username: string, pass: string): Promise<User> => {
+    const user = users.find(u => u.username === username && u.password === pass);
     if (user) {
-        return mockApi(user);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { password, ...userWithoutPassword } = user;
+        return mockApi(userWithoutPassword);
     }
     return new Promise((_, reject) => setTimeout(() => reject(new Error('Credenciais inválidas')), 300));
 };
 
-export const getUsers = () => mockApi(users);
+export const getUsers = () => mockApi(users.map(u => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password, ...userWithoutPassword } = u;
+    return userWithoutPassword;
+}));
+
 export const createUser = (data: Omit<User, 'id' | 'createdAt'>) => {
     const newUser: User = { ...data, id: Date.now(), createdAt: new Date().toISOString() };
     users.push(newUser);
