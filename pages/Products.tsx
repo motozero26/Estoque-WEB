@@ -30,17 +30,46 @@ const ProductForm: React.FC<{
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
-        const isCheckbox = type === 'checkbox';
-        const isNumber = type === 'number';
+        
+        setFormData(prev => {
+            if (type === 'checkbox') {
+                return { ...prev, [name]: (e.target as HTMLInputElement).checked };
+            }
+            
+            if (type === 'number') {
+                if (value === '') {
+                    // Allow clearing optional number fields by setting them to undefined
+                    if (name === 'cost' || name === 'minQty') {
+                        return { ...prev, [name]: undefined };
+                    }
+                    // For required number fields like qty, fallback to 0 so the field doesn't break
+                    return { ...prev, [name]: 0 };
+                }
+                const parsedValue = parseFloat(value);
+                // If user types non-numeric text, don't update state.
+                if (isNaN(parsedValue)) {
+                    return prev;
+                }
+                return { ...prev, [name]: parsedValue };
+            }
 
-        setFormData(prev => ({ 
-            ...prev, 
-            [name]: isCheckbox ? (e.target as HTMLInputElement).checked : (isNumber ? parseFloat(value) : value)
-        }));
+            // For all other input types
+            return { ...prev, [name]: value };
+        });
     };
     
     const handleSupplierChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const supplierId = parseInt(e.target.value, 10);
+        const supplierIdValue = e.target.value;
+        if (supplierIdValue === "") {
+             setFormData(prev => ({
+                ...prev,
+                supplierId: undefined,
+                supplierName: ''
+            }));
+            return;
+        }
+        
+        const supplierId = parseInt(supplierIdValue, 10);
         const supplier = suppliers.find(s => s.id === supplierId);
         setFormData(prev => ({
             ...prev,
@@ -52,7 +81,6 @@ const ProductForm: React.FC<{
     const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
             const files = Array.from(e.target.files);
-            // FIX: Explicitly type the `file` parameter in the map function to ensure correct type inference.
             const newPhotos: ProductPhoto[] = files.map((file: File) => ({ url: URL.createObjectURL(file), name: file.name }));
             const newPreviews = newPhotos.map(p => p.url);
 
@@ -74,7 +102,7 @@ const ProductForm: React.FC<{
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <input name="name" value={formData.name} onChange={handleChange} placeholder="Nome" className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" required />
                         <input name="reference" value={formData.reference} onChange={handleChange} placeholder="Referência" className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" required />
-                        <select name="supplierId" value={formData.supplierId} onChange={handleSupplierChange} className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600">
+                        <select name="supplierId" value={formData.supplierId || ''} onChange={handleSupplierChange} className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600">
                             <option value="">Sem Fornecedor</option>
                             {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
@@ -83,14 +111,14 @@ const ProductForm: React.FC<{
                             <option value="usado">Usado</option>
                         </select>
                         <input name="qty" type="number" value={formData.qty} onChange={handleChange} placeholder="Quantidade" className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
-                        <input name="cost" type="number" step="0.01" value={formData.cost} onChange={handleChange} placeholder="Custo" className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
+                        <input name="cost" type="number" step="0.01" value={formData.cost === undefined ? '' : formData.cost} onChange={handleChange} placeholder="Custo" className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
                          <input name="location" value={formData.location} onChange={handleChange} placeholder="Localização" className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
                          <input name="dateEntry" type="date" value={formData.dateEntry} onChange={handleChange} className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
                     </div>
                     <textarea name="description" value={formData.description} onChange={handleChange} placeholder="Descrição" className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
                     <div>
                         <label className="block mb-2 text-sm font-medium">Fotos</label>
-                        <div className="border-2 border-dashed rounded-lg p-6 text-center">
+                        <div className="border-2 border-dashed rounded-lg p-6 text-center relative">
                             <UploadCloud className="mx-auto h-12 w-12 text-gray-400" />
                             <p className="mt-2 text-sm text-gray-600">Arraste e solte as fotos aqui, ou clique para selecionar</p>
                             <input type="file" multiple onChange={handlePhotoChange} className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"/>

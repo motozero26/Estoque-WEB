@@ -29,9 +29,9 @@ let clients: Client[] = [
 ];
 
 let serviceOrders: ServiceOrder[] = [
-    { id: 1, osNumber: 'OS-2024-001', clientId: 1, clientName: 'John Doe', status: ServiceOrderStatus.EmAndamento, entryDate: new Date(Date.now() - 86400000 * 2).toISOString(), createdAt: new Date().toISOString(), products: [{id: 1, productId: 1, productName: 'SSD 512GB', productReference: 'SSD-512-INT', qty: 1, unitCost: 50}], technicianId: 2, technicianName: 'Tecnico Um' },
-    { id: 2, osNumber: 'OS-2024-002', clientId: 2, clientName: 'Jane Smith', status: ServiceOrderStatus.EmAberto, entryDate: new Date(Date.now() - 86400000 * 3).toISOString(), createdAt: new Date().toISOString(), products: [] },
-    { id: 3, osNumber: 'OS-2024-003', clientId: 1, clientName: 'John Doe', status: ServiceOrderStatus.EmAberto, entryDate: new Date(Date.now() - 86400000 * 1).toISOString(), createdAt: new Date().toISOString(), products: [] },
+    { id: 1, osNumber: 'OS-2024-001', clientId: 1, clientName: 'John Doe', status: ServiceOrderStatus.EmAndamento, entryDate: new Date(Date.now() - 86400000 * 2).toISOString(), createdAt: new Date().toISOString(), products: [{id: 1, productId: 1, productName: 'SSD 512GB', productReference: 'SSD-512-INT', qty: 1, unitCost: 50}], technicianId: 2, technicianName: 'Tecnico Um', initialPhotos: [] },
+    { id: 2, osNumber: 'OS-2024-002', clientId: 2, clientName: 'Jane Smith', status: ServiceOrderStatus.EmAberto, entryDate: new Date(Date.now() - 86400000 * 3).toISOString(), createdAt: new Date().toISOString(), products: [], initialPhotos: [] },
+    { id: 3, osNumber: 'OS-2024-003', clientId: 1, clientName: 'John Doe', status: ServiceOrderStatus.EmAberto, entryDate: new Date(Date.now() - 86400000 * 1).toISOString(), createdAt: new Date().toISOString(), products: [], initialPhotos: [] },
 ];
 
 const mockApi = <T,>(data: T): Promise<T> => new Promise(resolve => setTimeout(() => resolve(data), 300));
@@ -107,14 +107,14 @@ export const getServiceOrders = () => mockApi(serviceOrders);
 
 export const createServiceOrder = (data: Omit<ServiceOrder, 'id' | 'createdAt' | 'osNumber' | 'clientName' | 'products' | 'status'>) => {
     const client = clients.find(c => c.id === data.clientId);
-    const newSO: ServiceOrder = { 
-        ...data, 
-        id: Date.now(), 
+    const newSO: ServiceOrder = {
+        ...data,
+        id: Date.now(),
         osNumber: `OS-${new Date().getFullYear()}-${String(serviceOrders.length + 1).padStart(3, '0')}`,
         clientName: client?.name || 'Unknown',
         products: [],
         status: ServiceOrderStatus.EmAberto, // New OS always start as 'Em Aberto'
-        createdAt: new Date().toISOString() 
+        createdAt: new Date().toISOString()
     };
     serviceOrders.push(newSO);
     return mockApi(newSO);

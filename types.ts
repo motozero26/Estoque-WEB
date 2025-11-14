@@ -78,6 +78,7 @@ export interface ServiceOrder {
   technicianName?: string;
   createdAt: string;
   products: ServiceOrderProduct[];
+  initialPhotos?: ProductPhoto[];
 }
 
 export interface ServiceOrderProduct {
