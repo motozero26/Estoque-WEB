@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   name: string;
@@ -42,6 +43,14 @@ export interface Product {
   createdAt: string;
 }
 
+export interface Service {
+  id: number;
+  name: string;
+  description?: string;
+  price: number;
+  createdAt: string;
+}
+
 export interface Client {
   id: number;
   name: string;
@@ -77,6 +86,7 @@ export interface ServiceOrder {
   technicianName?: string;
   createdAt: string;
   products: ServiceOrderProduct[];
+  services: ServiceOrderService[];
   initialPhotos?: ProductPhoto[];
 }
 
@@ -87,4 +97,11 @@ export interface ServiceOrderProduct {
     productReference: string;
     qty: number;
     unitCost?: number;
+}
+
+export interface ServiceOrderService {
+    id: number;
+    serviceId: number;
+    serviceName: string;
+    price: number;
 }

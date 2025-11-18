@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { HashRouter, Routes, Route, Outlet, NavLink, Navigate, useNavigate } from 'react-router-dom';
-import { Users, HardDrive, Wrench, Package, Home, FileText, LogOut, UserCog } from 'lucide-react';
+import { Users, HardDrive, Wrench, Package, Home, FileText, LogOut, UserCog, Briefcase } from 'lucide-react';
 
 import Dashboard from './pages/Dashboard';
 import Suppliers from './pages/Suppliers';
@@ -11,6 +11,7 @@ import ServiceOrders from './pages/ServiceOrders';
 import Reports from './pages/Reports';
 import Login from './pages/Login';
 import Technicians from './pages/Technicians';
+import Services from './pages/Services';
 import { User } from './types';
 import * as api from './services/api';
 
@@ -18,6 +19,7 @@ const navItems = [
   { path: '/', label: 'Painel', icon: Home },
   { path: '/suppliers', label: 'Fornecedores', icon: Package },
   { path: '/products', label: 'Produtos', icon: HardDrive },
+  { path: '/services', label: 'Serviços', icon: Briefcase },
   { path: '/clients', label: 'Clientes', icon: Users },
   { path: '/service-orders', label: 'Ordens de Serviço', icon: Wrench },
   { path: '/technicians', label: 'Técnicos', icon: UserCog },
@@ -114,6 +116,7 @@ function App() {
                             <Route index element={<Dashboard />} />
                             <Route path="suppliers" element={<Suppliers />} />
                             <Route path="products" element={<Products />} />
+                            <Route path="services" element={<Services />} />
                             <Route path="clients" element={<Clients />} />
                             <Route path="service-orders" element={<ServiceOrders currentUser={currentUser!} />} />
                             <Route path="technicians" element={<Technicians currentUser={currentUser!} />} />

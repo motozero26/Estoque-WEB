@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ServiceOrder, Client, Product, ServiceOrderStatus, User, ProductPhoto } from '../types';
+import { ServiceOrder, Client, Product, ServiceOrderStatus, User, ProductPhoto, Service } from '../types';
 import * as api from '../services/api';
-import { Plus, PackagePlus, ArrowRight, X, UploadCloud, Printer, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, PackagePlus, ArrowRight, X, UploadCloud, Printer, ArrowUp, ArrowDown, Briefcase } from 'lucide-react';
 
-type CreateServiceOrderData = Omit<ServiceOrder, 'id' | 'createdAt' | 'osNumber' | 'clientName' | 'products' | 'status'>;
+type CreateServiceOrderData = Omit<ServiceOrder, 'id' | 'createdAt' | 'osNumber' | 'clientName' | 'products' | 'services' | 'status'>;
 
 type SortableKey = 'osNumber' | 'clientName' | 'status' | 'technicianName';
 
@@ -117,6 +117,40 @@ const AddProductToOrderForm: React.FC<{
     )
 }
 
+const AddServiceToOrderForm: React.FC<{
+    orderId: number;
+    services: Service[];
+    onSave: (orderId: number, serviceId: number) => void;
+    onCancel: () => void;
+}> = ({ orderId, services, onSave, onCancel }) => {
+    const [serviceId, setServiceId] = useState<number | undefined>();
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (serviceId) {
+            onSave(orderId, serviceId);
+        }
+    };
+
+    return (
+         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-8 w-full max-w-lg shadow-xl">
+                <h2 className="text-2xl font-bold mb-6">Adicionar Serviço à OS</h2>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <select value={serviceId} onChange={(e) => setServiceId(Number(e.target.value))} className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600">
+                        <option>Selecione o serviço</option>
+                        {services.map(s => <option key={s.id} value={s.id}>{s.name} - {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(s.price)}</option>)}
+                    </select>
+                     <div className="flex justify-end gap-4 mt-6">
+                        <button type="button" onClick={onCancel} className="px-4 py-2 bg-gray-300 dark:bg-gray-600 rounded-lg">Cancelar</button>
+                        <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg">Adicionar Serviço</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    )
+}
+
 const PrintableOS: React.FC<{ order: ServiceOrder; client: Client | undefined; onClose: () => void; }> = ({ order, client, onClose }) => {
     const printRef = useRef<HTMLDivElement>(null);
 
@@ -131,6 +165,10 @@ const PrintableOS: React.FC<{ order: ServiceOrder; client: Client | undefined; o
             window.location.reload(); // Recarrega para restaurar os scripts e o estado
         }
     };
+
+    const totalProducts = order.products.reduce((acc, curr) => acc + ((curr.unitCost || 0) * curr.qty), 0);
+    const totalServices = order.services ? order.services.reduce((acc, curr) => acc + curr.price, 0) : 0;
+    const totalGeneral = totalProducts + totalServices;
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
@@ -160,6 +198,59 @@ const PrintableOS: React.FC<{ order: ServiceOrder; client: Client | undefined; o
                             <p><strong>Diagnóstico/Problema Inicial:</strong></p>
                             <p className="whitespace-pre-wrap pl-2 border-l-2 border-gray-200">{order.diagnosisInitial || 'Nenhuma descrição fornecida.'}</p>
                         </div>
+                        
+                        {(order.services && order.services.length > 0) && (
+                             <div className="py-4 my-4">
+                                <h2 className="text-lg font-bold mb-2">Serviços (Mão de Obra)</h2>
+                                <table className="w-full border-collapse border border-gray-300 text-sm">
+                                    <thead>
+                                        <tr className="bg-gray-100">
+                                            <th className="border border-gray-300 p-2 text-left">Serviço</th>
+                                            <th className="border border-gray-300 p-2 text-right">Preço</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {order.services.map(s => (
+                                            <tr key={s.id}>
+                                                <td className="border border-gray-300 p-2">{s.serviceName}</td>
+                                                <td className="border border-gray-300 p-2 text-right">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(s.price)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        {(order.products && order.products.length > 0) && (
+                             <div className="py-4 my-4">
+                                <h2 className="text-lg font-bold mb-2">Peças / Produtos</h2>
+                                <table className="w-full border-collapse border border-gray-300 text-sm">
+                                    <thead>
+                                        <tr className="bg-gray-100">
+                                            <th className="border border-gray-300 p-2 text-left">Produto</th>
+                                            <th className="border border-gray-300 p-2 text-center">Qtd</th>
+                                            <th className="border border-gray-300 p-2 text-right">Unit.</th>
+                                            <th className="border border-gray-300 p-2 text-right">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {order.products.map(p => (
+                                            <tr key={p.id}>
+                                                <td className="border border-gray-300 p-2">{p.productName}</td>
+                                                <td className="border border-gray-300 p-2 text-center">{p.qty}</td>
+                                                <td className="border border-gray-300 p-2 text-right">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(p.unitCost || 0)}</td>
+                                                <td className="border border-gray-300 p-2 text-right">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format((p.unitCost || 0) * p.qty)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                        
+                        <div className="py-4 my-4 text-right">
+                            <h3 className="text-xl font-bold">Total Estimado: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalGeneral)}</h3>
+                        </div>
+
                         {order.initialPhotos && order.initialPhotos.length > 0 && (
                              <div className="py-4 my-4">
                                 <h2 className="text-lg font-bold mb-2">Fotos do Equipamento</h2>
@@ -238,6 +329,18 @@ const ServiceOrderDetailModal: React.FC<{
                             </div>
                         </div>
                      )}
+                    
+                    {(order.services && order.services.length > 0) && (
+                        <div>
+                            <h3 className="font-semibold text-gray-800 dark:text-gray-200">Serviços</h3>
+                            <ul className="list-disc pl-5 text-gray-600 dark:text-gray-400">
+                                {order.services.map(s => (
+                                    <li key={s.id}>{s.serviceName} - {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(s.price)}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
                     <div>
                         <h3 className="font-semibold text-gray-800 dark:text-gray-200">Produtos Associados</h3>
                         {productsWithPhotos.length > 0 ? (
@@ -268,9 +371,11 @@ const ServiceOrders: React.FC<{ currentUser: User }> = ({ currentUser }) => {
     const [orders, setOrders] = useState<ServiceOrder[]>([]);
     const [clients, setClients] = useState<Client[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
+    const [services, setServices] = useState<Service[]>([]);
     const [loading, setLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [isAddProductFormOpen, setIsAddProductFormOpen] = useState(false);
+    const [isAddServiceFormOpen, setIsAddServiceFormOpen] = useState(false);
     const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
     const [viewingOrder, setViewingOrder] = useState<ServiceOrder | null>(null);
     const [orderToPrint, setOrderToPrint] = useState<ServiceOrder | null>(null);
@@ -281,10 +386,16 @@ const ServiceOrders: React.FC<{ currentUser: User }> = ({ currentUser }) => {
 
     const fetchData = useCallback(async () => {
         setLoading(true);
-        const [ordersData, clientsData, productsData] = await Promise.all([api.getServiceOrders(), api.getClients(), api.getProducts()]);
+        const [ordersData, clientsData, productsData, servicesData] = await Promise.all([
+            api.getServiceOrders(), 
+            api.getClients(), 
+            api.getProducts(),
+            api.getServices()
+        ]);
         setOrders(ordersData);
         setClients(clientsData);
         setProducts(productsData);
+        setServices(servicesData);
         setLoading(false);
     }, []);
 
@@ -303,6 +414,13 @@ const ServiceOrders: React.FC<{ currentUser: User }> = ({ currentUser }) => {
         await api.addProductToServiceOrder(orderId, productId, qty);
         fetchData();
         setIsAddProductFormOpen(false);
+        setSelectedOrderId(null);
+    }
+    
+    const handleAddService = async (orderId: number, serviceId: number) => {
+        await api.addServiceToServiceOrder(orderId, serviceId);
+        fetchData();
+        setIsAddServiceFormOpen(false);
         setSelectedOrderId(null);
     }
     
@@ -461,9 +579,12 @@ const ServiceOrders: React.FC<{ currentUser: User }> = ({ currentUser }) => {
                                             </td>
                                             <td className="p-4">{o.technicianName}</td>
                                             {isAdmin && (
-                                                <td className="p-4" onClick={e => e.stopPropagation()}>
+                                                <td className="p-4 flex gap-1" onClick={e => e.stopPropagation()}>
                                                     <button onClick={() => { setSelectedOrderId(o.id); setIsAddProductFormOpen(true); }} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full" title="Adicionar Produto">
                                                         <PackagePlus size={16}/>
+                                                    </button>
+                                                    <button onClick={() => { setSelectedOrderId(o.id); setIsAddServiceFormOpen(true); }} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full" title="Adicionar Serviço">
+                                                        <Briefcase size={16}/>
                                                     </button>
                                                 </td>
                                             )}
@@ -515,9 +636,12 @@ const ServiceOrders: React.FC<{ currentUser: User }> = ({ currentUser }) => {
                                                     <option value={ServiceOrderStatus.Fechado}>Fechado</option>
                                                 </select>
                                             </td>
-                                            <td className="p-4" onClick={e => e.stopPropagation()}>
+                                            <td className="p-4 flex gap-1" onClick={e => e.stopPropagation()}>
                                                 <button onClick={() => { setSelectedOrderId(o.id); setIsAddProductFormOpen(true); }} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full" title="Adicionar Produto">
                                                     <PackagePlus size={16}/>
+                                                </button>
+                                                <button onClick={() => { setSelectedOrderId(o.id); setIsAddServiceFormOpen(true); }} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full" title="Adicionar Serviço">
+                                                    <Briefcase size={16}/>
                                                 </button>
                                             </td>
                                         </tr>
@@ -535,6 +659,7 @@ const ServiceOrders: React.FC<{ currentUser: User }> = ({ currentUser }) => {
             )}
             {isFormOpen && <ServiceOrderForm clients={clients} onSave={handleCreateOrder} onCancel={() => setIsFormOpen(false)} />}
             {isAddProductFormOpen && selectedOrderId && <AddProductToOrderForm orderId={selectedOrderId} products={products} onSave={handleAddProduct} onCancel={() => setIsAddProductFormOpen(false)} />}
+            {isAddServiceFormOpen && selectedOrderId && <AddServiceToOrderForm orderId={selectedOrderId} services={services} onSave={handleAddService} onCancel={() => setIsAddServiceFormOpen(false)} />}
             {viewingOrder && <ServiceOrderDetailModal order={viewingOrder} allProducts={products} onClose={() => setViewingOrder(null)} />}
             {orderToPrint && <PrintableOS order={orderToPrint} client={clients.find(c => c.id === orderToPrint.clientId)} onClose={() => setOrderToPrint(null)} />}
         </div>

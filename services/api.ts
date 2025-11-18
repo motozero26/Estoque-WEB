@@ -1,4 +1,5 @@
-import { Supplier, Product, Client, ServiceOrder, ServiceOrderStatus, User } from '../types';
+
+import { Supplier, Product, Client, ServiceOrder, ServiceOrderStatus, User, Service } from '../types';
 import { supabase, mapSupabaseUserToAppUser } from './supabaseClient';
 
 // --- Auth & Users API ---
@@ -127,6 +128,7 @@ const mapToDb = <T>(data: T, mapping: Record<string, string>): any => {
 
 const supplierMapping = { taxId: 'tax_id', createdAt: 'created_at' };
 const productMapping = { supplierId: 'supplier_id', supplierName: 'supplier_name', isUsable: 'is_usable', minQty: 'min_qty', dateEntry: 'date_entry', createdAt: 'created_at' };
+const serviceMapping = { createdAt: 'created_at' };
 const clientMapping = { cpfCnpj: 'cpf_cnpj', createdAt: 'created_at' };
 const serviceOrderMapping = { osNumber: 'os_number', clientId: 'client_id', clientName: 'client_name', entryDate: 'entry_date', deliveryDate: 'delivery_date', warrantyDays: 'warranty_days', warrantyExpiresAt: 'warranty_expires_at', diagnosisInitial: 'diagnosis_initial', totalEstimated: 'total_estimated', totalFinal: 'total_final', technicianId: 'technician_id', technicianName: 'technician_name', createdAt: 'created_at', initialPhotos: 'initial_photos' };
 
@@ -184,6 +186,28 @@ export const deleteProduct = async (id: number) => {
     return { success: true };
 };
 
+// --- Services API ---
+export const getServices = async (): Promise<Service[]> => {
+    const { data, error } = await supabase.from('services').select('*');
+    if (error) throw error;
+    return data.map(s => mapToApp(s, serviceMapping));
+};
+export const createService = async (serviceData: Omit<Service, 'id' | 'createdAt'>): Promise<Service> => {
+    const { data, error } = await supabase.from('services').insert([mapToDb(serviceData, serviceMapping)]).select().single();
+    if (error) throw error;
+    return mapToApp(data, serviceMapping);
+};
+export const updateService = async (id: number, serviceData: Partial<Service>): Promise<Service> => {
+    const { data, error } = await supabase.from('services').update(mapToDb(serviceData, serviceMapping)).eq('id', id).select().single();
+    if (error) throw error;
+    return mapToApp(data, serviceMapping);
+};
+export const deleteService = async (id: number) => {
+    const { error } = await supabase.from('services').delete().eq('id', id);
+    if (error) throw error;
+    return { success: true };
+};
+
 // --- Clients API ---
 export const getClients = async (): Promise<Client[]> => {
     const { data, error } = await supabase.from('clients').select('*');
@@ -200,22 +224,33 @@ export const createClient = async (clientData: Omit<Client, 'id' | 'createdAt'>)
 export const getServiceOrders = async (): Promise<ServiceOrder[]> => {
     const { data, error } = await supabase.from('service_orders').select('*');
     if (error) throw error;
-    return data.map(o => mapToApp(o, serviceOrderMapping));
+    return data.map(o => {
+        const mapped = mapToApp<ServiceOrder>(o, serviceOrderMapping);
+        // Ensure arrays are initialized if null in DB
+        return {
+            ...mapped,
+            products: mapped.products || [],
+            services: mapped.services || []
+        };
+    });
 };
 
-export const createServiceOrder = async (orderData: Omit<ServiceOrder, 'id' | 'createdAt' | 'osNumber' | 'clientName' | 'products' | 'status'>): Promise<ServiceOrder> => {
+export const createServiceOrder = async (orderData: Omit<ServiceOrder, 'id' | 'createdAt' | 'osNumber' | 'clientName' | 'products' | 'services' | 'status'>): Promise<ServiceOrder> => {
     const { data: client } = await supabase.from('clients').select('name').eq('id', orderData.clientId).single();
     
     const newOrderData = {
         ...orderData,
         clientName: client?.name || 'Unknown',
         products: [],
+        services: [],
         status: ServiceOrderStatus.EmAberto,
     };
     
     const { data, error } = await supabase.from('service_orders').insert([mapToDb(newOrderData, serviceOrderMapping)]).select().single();
     if (error) throw error;
-    return mapToApp(data, serviceOrderMapping);
+    
+    const mapped = mapToApp<ServiceOrder>(data, serviceOrderMapping);
+    return { ...mapped, products: [], services: [] };
 };
 
 export const assignServiceOrder = async (orderId: number, technicianId: string): Promise<ServiceOrder> => {
@@ -258,6 +293,28 @@ export const addProductToServiceOrder = async (orderId: number, productId: numbe
     const updatedProducts = [...existingProducts, newProductEntry];
 
     const { data: updatedOrder, error } = await supabase.from('service_orders').update({ products: updatedProducts }).eq('id', orderId).select().single();
+    if (error) throw error;
+    
+    return mapToApp(updatedOrder, serviceOrderMapping);
+};
+
+export const addServiceToServiceOrder = async (orderId: number, serviceId: number): Promise<ServiceOrder> => {
+    const { data: service } = await supabase.from('services').select('*').eq('id', serviceId).single();
+    if (!service) throw new Error("Serviço não encontrado.");
+    
+    const { data: order } = await supabase.from('service_orders').select('services').eq('id', orderId).single();
+    const existingServices = order?.services || [];
+    
+    const newServiceEntry = {
+        id: Date.now(),
+        serviceId: service.id,
+        serviceName: service.name,
+        price: service.price
+    };
+    
+    const updatedServices = [...existingServices, newServiceEntry];
+
+    const { data: updatedOrder, error } = await supabase.from('service_orders').update({ services: updatedServices }).eq('id', orderId).select().single();
     if (error) throw error;
     
     return mapToApp(updatedOrder, serviceOrderMapping);
