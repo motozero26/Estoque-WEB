@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Client, ServiceOrder } from '../types';
 import * as api from '../services/api';
@@ -15,14 +14,48 @@ const ClientForm: React.FC<{
         email: '',
         address: ''
     });
+    const [errors, setErrors] = useState({ email: '', phone: '' });
+
+    const validate = (): boolean => {
+        const tempErrors = { email: '', phone: '' };
+        
+        if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
+            tempErrors.email = 'Formato de e-mail inválido.';
+        }
+
+        const phoneDigits = (formData.phone || '').replace(/\D/g, '');
+        if (formData.phone && (phoneDigits.length < 10 || phoneDigits.length > 11)) {
+            tempErrors.phone = 'O telefone deve ter 10 ou 11 dígitos.';
+        }
+
+        setErrors(tempErrors);
+        return Object.values(tempErrors).every(x => x === "");
+    };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+        let { name, value } = e.target;
+        if (name === 'phone') {
+            const onlyNumbers = value.replace(/[^\d]/g, '');
+            if (onlyNumbers.length <= 10) {
+                 value = onlyNumbers
+                    .replace(/(\d{2})(\d)/, '($1) $2')
+                    .replace(/(\d{4})(\d)/, '$1-$2')
+                    .slice(0, 14); // (XX) XXXX-XXXX
+            } else {
+                 value = onlyNumbers
+                    .replace(/(\d{2})(\d)/, '($1) $2')
+                    .replace(/(\d{5})(\d)/, '$1-$2')
+                    .slice(0, 15); // (XX) XXXXX-XXXX
+            }
+        }
+        setFormData(prev => ({ ...prev, [e.target.name]: value }));
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave(formData);
+        if (validate()) {
+            onSave(formData);
+        }
     };
 
     return (
@@ -31,8 +64,16 @@ const ClientForm: React.FC<{
                 <h2 className="text-2xl font-bold mb-6">Adicionar Cliente</h2>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <input name="name" value={formData.name} onChange={handleChange} placeholder="Nome" className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" required />
-                    <input name="email" value={formData.email} onChange={handleChange} placeholder="E-mail" type="email" className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
-                    <input name="phone" value={formData.phone} onChange={handleChange} placeholder="Telefone" className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
+                    <input name="cpfCnpj" value={formData.cpfCnpj} onChange={handleChange} placeholder="CPF/CNPJ" className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
+                    <div>
+                        <input name="email" value={formData.email} onChange={handleChange} placeholder="E-mail" type="email" className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
+                        {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
+                    </div>
+                    <div>
+                        <input name="phone" value={formData.phone} onChange={handleChange} placeholder="Telefone" className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
+                        {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+                    </div>
+                    <input name="address" value={formData.address} onChange={handleChange} placeholder="Endereço" className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
                     <div className="flex justify-end gap-4 mt-6">
                         <button type="button" onClick={onCancel} className="px-4 py-2 bg-gray-300 dark:bg-gray-600 rounded-lg">Cancelar</button>
                         <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded-lg">Salvar</button>
@@ -61,12 +102,20 @@ const ClientDetailModal: React.FC<{
                 </div>
                 <div className="space-y-4 mb-6">
                     <div>
+                        <h3 className="font-semibold text-gray-800 dark:text-gray-200">CPF/CNPJ</h3>
+                        <p className="text-gray-600 dark:text-gray-400">{client.cpfCnpj || 'N/A'}</p>
+                    </div>
+                    <div>
                         <h3 className="font-semibold text-gray-800 dark:text-gray-200">E-mail</h3>
                         <p className="text-gray-600 dark:text-gray-400">{client.email || 'N/A'}</p>
                     </div>
                     <div>
                         <h3 className="font-semibold text-gray-800 dark:text-gray-200">Telefone</h3>
                         <p className="text-gray-600 dark:text-gray-400">{client.phone || 'N/A'}</p>
+                    </div>
+                     <div>
+                        <h3 className="font-semibold text-gray-800 dark:text-gray-200">Endereço</h3>
+                        <p className="text-gray-600 dark:text-gray-400">{client.address || 'N/A'}</p>
                     </div>
                 </div>
                 <div>
@@ -143,6 +192,7 @@ const Clients: React.FC = () => {
                         <thead className="bg-gray-50 dark:bg-gray-700">
                             <tr>
                                 <th className="p-4">Nome</th>
+                                <th className="p-4">CPF/CNPJ</th>
                                 <th className="p-4">E-mail</th>
                                 <th className="p-4">Telefone</th>
                             </tr>
@@ -151,6 +201,7 @@ const Clients: React.FC = () => {
                             {clients.map(c => (
                                 <tr key={c.id} className="border-b dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" onClick={() => setViewingClient(c)}>
                                     <td className="p-4 font-medium">{c.name}</td>
+                                    <td className="p-4">{c.cpfCnpj}</td>
                                     <td className="p-4">{c.email}</td>
                                     <td className="p-4">{c.phone}</td>
                                 </tr>

@@ -1,8 +1,7 @@
-
 export interface User {
-  id: number;
+  id: string;
   name: string;
-  username: string;
+  email: string;
   role: 'tecnico' | 'admin';
   createdAt: string;
 }
@@ -74,7 +73,7 @@ export interface ServiceOrder {
   diagnosisInitial?: string;
   totalEstimated?: number;
   totalFinal?: number;
-  technicianId?: number;
+  technicianId?: string;
   technicianName?: string;
   createdAt: string;
   products: ServiceOrderProduct[];

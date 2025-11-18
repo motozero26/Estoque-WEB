@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Supplier } from '../types';
 import * as api from '../services/api';
-import { Plus, Edit, Trash } from 'lucide-react';
+import { Plus, Edit, Trash, AlertTriangle } from 'lucide-react';
 
 const SupplierForm: React.FC<{
     supplier: Supplier | null;
@@ -19,16 +18,39 @@ const SupplierForm: React.FC<{
         status: 'ativo' as 'ativo' | 'inativo',
         ...supplier
     });
+    const [errors, setErrors] = useState({ taxId: '' });
+
+    const validateCnpj = (cnpj: string): string => {
+        if (!cnpj) return ''; // Optional field, no error if empty
+        const isValid = /^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/.test(cnpj);
+        return isValid ? '' : 'Formato de CNPJ inválido. Use XX.XXX.XXX/XXXX-XX';
+    };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
+        let { name, value } = e.target;
+        if (name === 'taxId') {
+            const onlyNumbers = value.replace(/[^\d]/g, '');
+            value = onlyNumbers
+                .replace(/(\d{2})(\d)/, '$1.$2')
+                .replace(/(\d{3})(\d)/, '$1.$2')
+                .replace(/(\d{3})(\d)/, '$1/$2')
+                .replace(/(\d{4})(\d)/, '$1-$2')
+                .slice(0, 18); // Limit to CNPJ length with mask
+        }
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        const cnpjError = validateCnpj(formData.taxId || '');
+        if (cnpjError) {
+            setErrors({ taxId: cnpjError });
+            return;
+        }
+        setErrors({ taxId: '' });
         onSave(formData);
     };
+
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
@@ -37,7 +59,10 @@ const SupplierForm: React.FC<{
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <input name="name" value={formData.name} onChange={handleChange} placeholder="Nome" className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" required />
-                        <input name="taxId" value={formData.taxId} onChange={handleChange} placeholder="CNPJ/CPF" className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
+                        <div>
+                            <input name="taxId" value={formData.taxId} onChange={handleChange} placeholder="CNPJ" className="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
+                            {errors.taxId && <p className="text-red-500 text-xs mt-1">{errors.taxId}</p>}
+                        </div>
                         <input name="phone" value={formData.phone} onChange={handleChange} placeholder="Telefone" className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
                         <input name="email" value={formData.email} onChange={handleChange} placeholder="E-mail" type="email" className="p-2 border rounded dark:bg-gray-700 dark:border-gray-600" />
                     </div>
@@ -57,17 +82,68 @@ const SupplierForm: React.FC<{
     );
 };
 
+const ConfirmationModal: React.FC<{
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+}> = ({ title, message, onConfirm, onCancel }) => {
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md shadow-xl">
+                <div className="flex items-center">
+                    <div className="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                        <AlertTriangle className="h-6 w-6 text-red-600" aria-hidden="true" />
+                    </div>
+                    <div className="ml-4">
+                        <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100">
+                            {title}
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            {message}
+                        </p>
+                    </div>
+                </div>
+                <div className="mt-6 flex justify-end gap-4">
+                    <button
+                        type="button"
+                        onClick={onCancel}
+                        className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        type="button"
+                        onClick={onConfirm}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                    >
+                        Excluir
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
 const Suppliers: React.FC = () => {
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+    const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
 
     const fetchSuppliers = useCallback(async () => {
         setLoading(true);
-        const data = await api.getSuppliers();
-        setSuppliers(data);
-        setLoading(false);
+        try {
+            const data = await api.getSuppliers();
+            setSuppliers(data);
+        } catch (error) {
+            console.error("Failed to fetch suppliers:", error);
+            alert("Não foi possível carregar os fornecedores.");
+        } finally {
+            setLoading(false);
+        }
     }, []);
 
     useEffect(() => {
@@ -75,20 +151,36 @@ const Suppliers: React.FC = () => {
     }, [fetchSuppliers]);
 
     const handleSave = async (supplierData: Omit<Supplier, 'id' | 'createdAt'> | Supplier) => {
-        if ('id' in supplierData) {
-            await api.updateSupplier(supplierData.id, supplierData);
-        } else {
-            await api.createSupplier(supplierData);
+        try {
+            if ('id' in supplierData) {
+                const { id, createdAt, ...updateData } = supplierData;
+                await api.updateSupplier(id, updateData);
+            } else {
+                await api.createSupplier(supplierData);
+            }
+            fetchSuppliers();
+            setIsModalOpen(false);
+            setEditingSupplier(null);
+        } catch (error) {
+            console.error("Failed to save supplier:", error);
+            alert(`Falha ao salvar fornecedor: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
         }
-        fetchSuppliers();
-        setIsModalOpen(false);
-        setEditingSupplier(null);
     };
 
-    const handleDelete = async (id: number) => {
-        if (window.confirm('Você tem certeza que deseja excluir este fornecedor?')) {
-            await api.deleteSupplier(id);
+    const handleDelete = (supplier: Supplier) => {
+        setSupplierToDelete(supplier);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!supplierToDelete) return;
+        try {
+            await api.deleteSupplier(supplierToDelete.id);
             fetchSuppliers();
+        } catch (error) {
+            console.error("Failed to delete supplier:", error);
+            alert(`Falha ao excluir fornecedor: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+        } finally {
+            setSupplierToDelete(null);
         }
     };
 
@@ -125,7 +217,7 @@ const Suppliers: React.FC = () => {
                                     </td>
                                     <td className="p-4 flex gap-2">
                                         <button onClick={() => { setEditingSupplier(s); setIsModalOpen(true); }} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full"><Edit size={16}/></button>
-                                        <button onClick={() => handleDelete(s.id)} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full"><Trash size={16}/></button>
+                                        <button onClick={() => handleDelete(s)} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full"><Trash size={16}/></button>
                                     </td>
                                 </tr>
                             ))}
@@ -134,6 +226,14 @@ const Suppliers: React.FC = () => {
                 </div>
             )}
             {isModalOpen && <SupplierForm supplier={editingSupplier} onSave={handleSave} onCancel={() => { setIsModalOpen(false); setEditingSupplier(null); }} />}
+            {supplierToDelete && (
+                <ConfirmationModal
+                    title="Excluir Fornecedor"
+                    message={`Você tem certeza que deseja excluir o fornecedor "${supplierToDelete.name}"? Esta ação não pode ser desfeita.`}
+                    onConfirm={handleConfirmDelete}
+                    onCancel={() => setSupplierToDelete(null)}
+                />
+            )}
         </div>
     );
 };

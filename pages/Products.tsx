@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Product, Supplier, ProductPhoto } from '../types';
 import * as api from '../services/api';
-import { Plus, Edit, Trash, UploadCloud } from 'lucide-react';
+import { Plus, Edit, Trash, UploadCloud, AlertTriangle } from 'lucide-react';
 
 const ProductForm: React.FC<{
     product: Product | null;
@@ -139,6 +139,49 @@ const ProductForm: React.FC<{
     );
 };
 
+const ConfirmationModal: React.FC<{
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+}> = ({ title, message, onConfirm, onCancel }) => {
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md shadow-xl">
+                <div className="flex items-center">
+                    <div className="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                        <AlertTriangle className="h-6 w-6 text-red-600" aria-hidden="true" />
+                    </div>
+                    <div className="ml-4">
+                        <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100">
+                            {title}
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            {message}
+                        </p>
+                    </div>
+                </div>
+                <div className="mt-6 flex justify-end gap-4">
+                    <button
+                        type="button"
+                        onClick={onCancel}
+                        className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        type="button"
+                        onClick={onConfirm}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                    >
+                        Excluir
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 const Products: React.FC = () => {
     const [products, setProducts] = useState<Product[]>([]);
@@ -146,13 +189,20 @@ const Products: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+    const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
     const fetchData = useCallback(async () => {
         setLoading(true);
-        const [productsData, suppliersData] = await Promise.all([api.getProducts(), api.getSuppliers()]);
-        setProducts(productsData);
-        setSuppliers(suppliersData);
-        setLoading(false);
+        try {
+            const [productsData, suppliersData] = await Promise.all([api.getProducts(), api.getSuppliers()]);
+            setProducts(productsData);
+            setSuppliers(suppliersData);
+        } catch (error) {
+            console.error("Failed to fetch data:", error);
+            alert("Não foi possível carregar os dados.");
+        } finally {
+            setLoading(false);
+        }
     }, []);
 
     useEffect(() => {
@@ -160,20 +210,36 @@ const Products: React.FC = () => {
     }, [fetchData]);
     
     const handleSave = async (productData: Omit<Product, 'id' | 'createdAt'> | Product) => {
-        if ('id' in productData) {
-            await api.updateProduct(productData.id, productData);
-        } else {
-            await api.createProduct(productData);
+        try {
+            if ('id' in productData) {
+                const { id, createdAt, ...updateData } = productData;
+                await api.updateProduct(id, updateData);
+            } else {
+                await api.createProduct(productData);
+            }
+            fetchData();
+            setIsModalOpen(false);
+            setEditingProduct(null);
+        } catch (error) {
+             console.error("Failed to save product:", error);
+            alert(`Falha ao salvar produto: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
         }
-        fetchData();
-        setIsModalOpen(false);
-        setEditingProduct(null);
     };
 
-    const handleDelete = async (id: number) => {
-        if (window.confirm('Você tem certeza que deseja excluir este produto?')) {
-            await api.deleteProduct(id);
+    const handleDelete = (product: Product) => {
+        setProductToDelete(product);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!productToDelete) return;
+        try {
+            await api.deleteProduct(productToDelete.id);
             fetchData();
+        } catch (error) {
+            console.error("Failed to delete product:", error);
+            alert(`Falha ao excluir produto: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+        } finally {
+            setProductToDelete(null);
         }
     };
 
@@ -218,7 +284,7 @@ const Products: React.FC = () => {
                                     </td>
                                     <td className="p-4 flex gap-2">
                                         <button onClick={() => { setEditingProduct(p); setIsModalOpen(true); }} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full"><Edit size={16}/></button>
-                                        <button onClick={() => handleDelete(p.id)} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full"><Trash size={16}/></button>
+                                        <button onClick={() => handleDelete(p)} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full"><Trash size={16}/></button>
                                     </td>
                                 </tr>
                             ))}
@@ -227,6 +293,14 @@ const Products: React.FC = () => {
                 </div>
             )}
             {isModalOpen && <ProductForm product={editingProduct} suppliers={suppliers} onSave={handleSave} onCancel={() => { setIsModalOpen(false); setEditingProduct(null); }} />}
+            {productToDelete && (
+                <ConfirmationModal
+                    title="Excluir Produto"
+                    message={`Você tem certeza que deseja excluir o produto "${productToDelete.name}"? Esta ação não pode ser desfeita.`}
+                    onConfirm={handleConfirmDelete}
+                    onCancel={() => setProductToDelete(null)}
+                />
+            )}
         </div>
     );
 };

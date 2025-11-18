@@ -277,6 +277,7 @@ const ServiceOrders: React.FC<{ currentUser: User }> = ({ currentUser }) => {
 
     const [sortConfig, setSortConfig] = useState<{ table: 'inProgress' | 'myOrders'; key: SortableKey; direction: 'ascending' | 'descending' } | null>(null);
 
+    const isAdmin = currentUser.role === 'admin';
 
     const fetchData = useCallback(async () => {
         setLoading(true);
@@ -432,6 +433,7 @@ const ServiceOrders: React.FC<{ currentUser: User }> = ({ currentUser }) => {
                                         <th className="p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" onClick={() => requestSort('inProgress', 'technicianName')}>
                                             <div className="flex items-center">Técnico {getSortIcon('inProgress', 'technicianName')}</div>
                                         </th>
+                                        {isAdmin && <th className="p-4">Ações</th>}
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -439,17 +441,37 @@ const ServiceOrders: React.FC<{ currentUser: User }> = ({ currentUser }) => {
                                         <tr key={o.id} className="border-b dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" onClick={() => setViewingOrder(o)}>
                                             <td className="p-4 font-medium">{o.osNumber}</td>
                                             <td className="p-4">{o.clientName}</td>
-                                            <td className="p-4">
-                                                <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(o.status)}`}>
-                                                    {o.status}
-                                                </span>
+                                            <td className="p-4" onClick={e => { if (isAdmin) e.stopPropagation(); }}>
+                                                {isAdmin ? (
+                                                    <select 
+                                                        value={o.status} 
+                                                        onChange={(e) => handleStatusChange(o.id, e.target.value as ServiceOrderStatus)}
+                                                        className={`px-2 py-1 text-xs rounded-full border-0 focus:ring-0 ${getStatusColor(o.status)}`}
+                                                    >
+                                                        <option value={ServiceOrderStatus.EmAndamento}>Em Andamento</option>
+                                                        <option value={ServiceOrderStatus.Pendente}>Pendente</option>
+                                                        <option value={ServiceOrderStatus.Resolvido}>Resolvido</option>
+                                                        <option value={ServiceOrderStatus.Fechado}>Fechado</option>
+                                                    </select>
+                                                ) : (
+                                                    <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(o.status)}`}>
+                                                        {o.status}
+                                                    </span>
+                                                )}
                                             </td>
                                             <td className="p-4">{o.technicianName}</td>
+                                            {isAdmin && (
+                                                <td className="p-4" onClick={e => e.stopPropagation()}>
+                                                    <button onClick={() => { setSelectedOrderId(o.id); setIsAddProductFormOpen(true); }} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full" title="Adicionar Produto">
+                                                        <PackagePlus size={16}/>
+                                                    </button>
+                                                </td>
+                                            )}
                                         </tr>
                                     ))}
                                     {sortedOrders.sortedInProgress.length === 0 && (
                                         <tr>
-                                            <td colSpan={4} className="p-4 text-center text-gray-500 dark:text-gray-400">Nenhuma OS em execução no momento.</td>
+                                            <td colSpan={isAdmin ? 5 : 4} className="p-4 text-center text-gray-500 dark:text-gray-400">Nenhuma OS em execução no momento.</td>
                                         </tr>
                                     )}
                                 </tbody>

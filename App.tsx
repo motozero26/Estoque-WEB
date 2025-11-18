@@ -89,17 +89,11 @@ function App() {
 
   const navigate = useNavigate();
 
-  const handleLogin = async (username: string, pass: string) => {
-      try {
-          const user = await api.login(username, pass);
-          setCurrentUser(user);
-          localStorage.setItem('currentUser', JSON.stringify(user));
-          navigate('/');
-          return true;
-      } catch (error) {
-          console.error(error);
-          return false;
-      }
+  const handleLogin = async (email: string, pass: string) => {
+    const user = await api.login(email, pass);
+    setCurrentUser(user);
+    localStorage.setItem('currentUser', JSON.stringify(user));
+    navigate('/');
   };
 
   const handleLogout = () => {
@@ -122,7 +116,7 @@ function App() {
                             <Route path="products" element={<Products />} />
                             <Route path="clients" element={<Clients />} />
                             <Route path="service-orders" element={<ServiceOrders currentUser={currentUser!} />} />
-                            <Route path="technicians" element={<Technicians />} />
+                            <Route path="technicians" element={<Technicians currentUser={currentUser!} />} />
                             <Route path="reports" element={<Reports />} />
                         </Route>
                     </Routes>

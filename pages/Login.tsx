@@ -3,11 +3,11 @@ import React, { useState } from 'react';
 import { Wrench } from 'lucide-react';
 
 interface LoginProps {
-    onLogin: (username: string, pass: string) => Promise<boolean>;
+    onLogin: (email: string, pass: string) => Promise<void>;
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
-    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -16,11 +16,17 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         e.preventDefault();
         setError('');
         setLoading(true);
-        const success = await onLogin(username, password);
-        if (!success) {
-            setError('Usuário ou senha inválidos.');
+        try {
+            await onLogin(email, password);
+        } catch (err: any) {
+            if (err.message === 'Email not confirmed') {
+                setError('Seu e-mail ainda não foi confirmado. Por favor, verifique sua caixa de entrada.');
+            } else {
+                setError('E-mail ou senha inválidos.');
+            }
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     return (
@@ -35,17 +41,17 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 </div>
                 <form className="space-y-6" onSubmit={handleSubmit}>
                     <div>
-                        <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Usuário
+                        <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            E-mail
                         </label>
                         <input
-                            id="username"
-                            name="username"
-                            type="text"
-                            autoComplete="username"
+                            id="email"
+                            name="email"
+                            type="email"
+                            autoComplete="email"
                             required
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
                             className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         />
                     </div>
